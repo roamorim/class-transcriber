@@ -1,0 +1,50 @@
+{% set is_active = record.status in ('pending', 'processing') %}
+<tr id="row-{{ record.id }}"
+  {% if is_active %}
+    hx-get="/transcripciones/{{ record.id }}/estado"
+    hx-trigger="every 5s"
+    hx-swap="outerHTML"
+    hx-target="#row-{{ record.id }}"
+  {% endif %}
+  class="hover:bg-gray-50 transition">
+
+  <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+    {{ record.created_at.strftime('%d/%m/%Y') }}
+  </td>
+  <td class="px-4 py-3 text-sm text-gray-800 font-medium">{{ record.discipline }}</td>
+  <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">{{ record.subject }}</td>
+  <td class="px-4 py-3 text-sm">
+    {% if record.status == 'done' %}
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+        ✓ Listo
+      </span>
+    {% elif record.status == 'processing' %}
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+        <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+        </svg>
+        Procesando...
+      </span>
+    {% elif record.status == 'pending' %}
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+        ⏳ En cola
+      </span>
+    {% else %}
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+        ✗ Error
+      </span>
+    {% endif %}
+  </td>
+  <td class="px-4 py-3 text-sm">
+    <div class="flex gap-2">
+      {% if record.status == 'done' %}
+        <a href="/descargar/pdf/{{ record.id }}"
+           class="text-indigo-600 hover:text-indigo-800 font-medium">PDF</a>
+        <span class="text-gray-300">|</span>
+      {% endif %}
+      <a href="/transcripciones/{{ record.id }}"
+         class="text-gray-500 hover:text-gray-700">Ver</a>
+    </div>
+  </td>
+</tr>

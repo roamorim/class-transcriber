@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: class-transcriber
+    runtime: python
+    buildCommand: pip install uv && uv pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: DATA_DIR
+        value: /data
+    disk:
+      name: transcriber-data
+      mountPath: /data
+      sizeGB: 10

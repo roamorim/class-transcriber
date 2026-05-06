@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ record.discipline }} — {{ record.subject }} — Transcriptor{% endblock %}
+
+{% block content %}
+{% set is_active = record.status in ('pending', 'processing') %}
+
+<div class="mb-4">
+  <a href="/transcripciones" class="text-sm text-indigo-600 hover:underline">← Volver al historial</a>
+</div>
+
+<div class="flex flex-col md:flex-row gap-6"
+  {% if is_active %}
+    hx-get="/transcripciones/{{ record.id }}/detalle-estado"
+    hx-trigger="every 5s"
+    hx-swap="outerHTML"
+    hx-target="closest div[hx-get]"
+  {% endif %}>
+
+  <!-- Metadata card -->
+  <div class="md:w-72 shrink-0">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-3">
+      <h2 class="font-semibold text-gray-800 text-base">Información de la clase</h2>
+      <hr class="border-gray-100" />
+
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide">Disciplina</p>
+        <p class="text-sm font-medium text-gray-700">{{ record.discipline }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide">Tema</p>
+        <p class="text-sm text-gray-700">{{ record.subject }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide">Fecha de subida</p>
+        <p class="text-sm text-gray-700">{{ record.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+      </div>
+      {% if record.completed_at %}
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide">Completado</p>
+        <p class="text-sm text-gray-700">{{ record.completed_at.strftime('%d/%m/%Y %H:%M') }}</p>
+      </div>
+      {% endif %}
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Estado</p>
+        {% if record.status == 'done' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">✓ Listo</span>
+        {% elif record.status == 'processing' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+            <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+            Procesando...
+          </span>
+        {% elif record.status == 'pending' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">⏳ En cola</span>
+        {% else %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">✗ Error</span>
+        {% endif %}
+      </div>
+
+      <hr class="border-gray-100" />
+
+      {% if record.status == 'done' %}
+      <a href="/descargar/pdf/{{ record.id }}"
+         class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition">
+        ⬇ Descargar PDF
+      </a>
+      {% endif %}
+
+      <form action="/transcripciones/{{ record.id }}" method="post"
+            onsubmit="return confirm('¿Seguro que quieres eliminar esta transcripción? Esta acción no se puede deshacer.')">
+        <input type="hidden" name="_method" value="DELETE" />
+        <button type="submit"
+                class="w-full text-sm text-red-500 hover:text-red-700 py-1.5 rounded border border-red-200 hover:bg-red-50 transition">
+          Eliminar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Transcription content -->
+  <div class="flex-1">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 min-h-64">
+      <h2 class="font-semibold text-gray-800 text-base mb-4">Transcripción</h2>
+
+      {% if record.status == 'done' and record.transcript_text %}
+        <div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap font-sans">{{ record.transcript_text }}</div>
+      {% elif record.status in ('pending', 'processing') %}
+        <div class="flex flex-col items-center justify-center py-16 text-gray-400">
+          <svg class="animate-spin h-8 w-8 mb-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+          </svg>
+          <p class="text-sm">La transcripción está siendo procesada...</p>
+          <p class="text-xs mt-1 text-gray-300">Esta página se actualizará automáticamente.</p>
+        </div>
+      {% elif record.status == 'error' %}
+        <div class="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+          <p class="font-medium mb-1">Ocurrió un error durante la transcripción:</p>
+          <p class="font-mono text-xs">{{ record.error_message }}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
