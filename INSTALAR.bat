@@ -83,12 +83,13 @@ echo.
 echo  Instalando dependencias...
 echo  (esto puede tardar unos minutos)
 echo.
-pip install uv --quiet --disable-pip-version-check
+powershell -NoProfile -ExecutionPolicy ByPass -Command "irm https://astral.sh/uv/install.ps1 | iex"
 if %errorlevel% neq 0 (
     echo  ERROR al instalar el gestor de paquetes.
     pause
     exit /b 1
 )
+set "PATH=%LOCALAPPDATA%\uv\bin;%PATH%"
 uv sync --quiet
 if %errorlevel% neq 0 (
     echo  ERROR al instalar las dependencias.
@@ -99,6 +100,7 @@ if %errorlevel% neq 0 (
 :: Crear acceso directo en el Escritorio
 echo @echo off > "%SHORTCUT%"
 echo title Transcriptor de Clases >> "%SHORTCUT%"
+echo set "PATH=%LOCALAPPDATA%\uv\bin;%%PATH%%" >> "%SHORTCUT%"
 echo cd /d "%INSTALL_DIR%" >> "%SHORTCUT%"
 echo echo. >> "%SHORTCUT%"
 echo echo  Iniciando... cierra esta ventana para apagar la app. >> "%SHORTCUT%"
