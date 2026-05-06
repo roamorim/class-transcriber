@@ -1,0 +1,40 @@
+TRANSCRIPTOR DE CLASES — Instrucciones
+========================================
+
+PASO 1 — Instalar Python (solo la primera vez)
+------------------------------------------------
+Descarga e instala Python desde:
+  https://www.python.org/downloads/
+
+IMPORTANTE: durante la instalacion marca la casilla
+"Add Python to PATH" antes de hacer clic en Install.
+
+
+PASO 2 — Instalar la aplicacion (solo la primera vez)
+-------------------------------------------------------
+Haz doble clic en el archivo:  INSTALAR.bat
+
+El programa te pedira una API Key de Google.
+Puedes obtenerla gratis en:
+  https://aistudio.google.com/apikey
+
+
+PASO 3 — Usar la aplicacion (cada vez que quieras usarla)
+----------------------------------------------------------
+Haz doble clic en el acceso directo de tu Escritorio:
+  "Transcriptor de Clases.bat"
+
+El navegador se abrira automaticamente.
+Para cerrar la app, cierra la ventana negra.
+
+
+PREGUNTAS FRECUENTES
+--------------------
+¿Perdi mis transcripciones?
+  Estan en la carpeta:  C:\Users\TuNombre\TranscriptorClases\data\
+
+¿Tengo que instalar de nuevo si reinicio el PC?
+  No. Solo haz doble clic en el acceso directo del Escritorio.
+
+¿Cuanto cuesta la API Key de Google?
+  El plan gratuito de Google AI Studio es suficiente para uso personal.
