@@ -27,22 +27,6 @@ echo    Transcriptor de Clases - Instalacion
 echo  ==========================================
 echo.
 
-:: Verificar Python
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo  Python no esta instalado.
-    echo  Abriendo pagina de descarga...
-    echo.
-    echo  IMPORTANTE: durante la instalacion marca
-    echo  la casilla "Add Python to PATH"
-    echo.
-    start https://www.python.org/downloads/
-    pause
-    exit /b 1
-)
-for /f "tokens=*" %%v in ('python --version 2^>^&1') do echo  %%v encontrado.
-echo.
-
 :: Descargar aplicacion
 echo  Descargando la aplicacion...
 curl -L --silent --show-error -o "%TEMP_ZIP%" "%REPO_ZIP%"
