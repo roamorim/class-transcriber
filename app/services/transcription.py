@@ -53,12 +53,11 @@ def _sync_transcribe(audio_path: Path) -> str:
         ],
         config=types.GenerateContentConfig(
             # On long audio the model sometimes gets stuck repeating the same
-            # phrase until it hits the output limit (see analyze_repetition /
-            # the logging below). These penalties push back against repeating
-            # the same tokens; max_output_tokens caps the damage if it still
-            # happens instead of burning the full 65536-token default budget.
-            frequency_penalty=0.3,
-            presence_penalty=0.3,
+            # phrase until it hits the output limit (see analyze_repetition
+            # below). frequency_penalty/presence_penalty would be the direct
+            # fix but Gemini rejects them for this model ("Penalty is not
+            # enabled for models/gemini-2.5-flash"), so this only caps the
+            # damage instead of burning the full 65536-token default budget.
             max_output_tokens=32768,
         ),
     )
