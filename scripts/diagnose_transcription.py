@@ -91,7 +91,13 @@ def main() -> None:
 
     print("\nLlamando de nuevo a Gemini para intentar reproducir el problema "
           "(esto consume cuota real de la API)...")
-    new_text = asyncio.run(run_transcription(audio_path))
+    try:
+        new_text = asyncio.run(run_transcription(audio_path))
+    except Exception as exc:
+        print(f"\nERROR al llamar a Gemini: {exc}")
+        print("Puede ser un problema temporal del servicio (alta demanda, timeout, etc). "
+              "Espera unos minutos y vuelve a intentarlo con el mismo id.")
+        sys.exit(1)
 
     new_report = analyze_repetition(new_text)
     print(f"\nNueva transcripcion: {len(new_text)} caracteres")
