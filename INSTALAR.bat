@@ -8,6 +8,19 @@ set "TEMP_ZIP=%TEMP%\transcriptor_clases.zip"
 set "TEMP_DIR=%TEMP%\transcriptor_tmp"
 set "SHORTCUT=%USERPROFILE%\Desktop\Transcriptor de Clases.bat"
 
+:: Si este instalador se esta ejecutando desde dentro de la carpeta que
+:: vamos a borrar y recrear, se borraria a si mismo a la mitad de la
+:: ejecucion ("no se puede encontrar el archivo en lotes"). Para evitarlo,
+:: nos copiamos a una carpeta temporal y nos relanzamos desde ahi.
+echo %~dp0| findstr /i /c:"%INSTALL_DIR%" >nul
+if %errorlevel%==0 (
+    echo  Reiniciando el instalador de forma segura...
+    set "SELF_TEMP=%TEMP%\instalar_transcriptor_clases.bat"
+    copy /y "%~f0" "!SELF_TEMP!" >nul
+    start "Instalando Transcriptor de Clases..." "!SELF_TEMP!"
+    exit /b
+)
+
 echo.
 echo  ==========================================
 echo    Transcriptor de Clases - Instalacion
@@ -43,7 +56,16 @@ if %errorlevel% neq 0 (
 :: Extraer archivos
 echo  Extrayendo archivos...
 if exist "%TEMP_DIR%" rmdir /s /q "%TEMP_DIR%"
-if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%"
+if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%" 2>nul
+if exist "%INSTALL_DIR%" (
+    echo.
+    echo  ERROR: no se pudo actualizar porque la aplicacion sigue abierta.
+    echo  Cierra todas las ventanas de "Transcriptor de Clases" ^(la ventana
+    echo  negra que se abre al usar la app^) y vuelve a ejecutar este instalador.
+    echo.
+    pause
+    exit /b 1
+)
 powershell -NoProfile -Command "Expand-Archive -Path '%TEMP_ZIP%' -DestinationPath '%TEMP_DIR%' -Force"
 if %errorlevel% neq 0 (
     echo  ERROR al extraer los archivos.
@@ -89,7 +111,7 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
-set "PATH=%LOCALAPPDATA%\uv\bin;%PATH%"
+set "PATH=%USERPROFILE%\.local\bin;%PATH%"
 uv sync --quiet
 if %errorlevel% neq 0 (
     echo  ERROR al instalar las dependencias.
@@ -100,7 +122,7 @@ if %errorlevel% neq 0 (
 :: Crear acceso directo en el Escritorio
 echo @echo off > "%SHORTCUT%"
 echo title Transcriptor de Clases >> "%SHORTCUT%"
-echo set "PATH=%LOCALAPPDATA%\uv\bin;%%PATH%%" >> "%SHORTCUT%"
+echo set "PATH=%USERPROFILE%\.local\bin;%%PATH%%" >> "%SHORTCUT%"
 echo cd /d "%INSTALL_DIR%" >> "%SHORTCUT%"
 echo echo. >> "%SHORTCUT%"
 echo echo  Iniciando... cierra esta ventana para apagar la app. >> "%SHORTCUT%"
