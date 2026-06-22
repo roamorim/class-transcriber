@@ -1,5 +1,7 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -12,9 +14,23 @@ from app.worker import transcription_worker
 from app.routers import transcriptions, files
 
 
+def _setup_logging() -> None:
+    log_path = settings.data_dir / "app.log"
+    handlers = [
+        RotatingFileHandler(log_path, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"),
+        logging.StreamHandler(),
+    ]
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        handlers=handlers,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
+    _setup_logging()
     await init_db()
     worker_task = asyncio.create_task(transcription_worker())
     yield
