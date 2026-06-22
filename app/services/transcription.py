@@ -51,6 +51,16 @@ def _sync_transcribe(audio_path: Path) -> str:
                 "Solo entrega el texto transcrito."
             ),
         ],
+        config=types.GenerateContentConfig(
+            # On long audio the model sometimes gets stuck repeating the same
+            # phrase until it hits the output limit (see analyze_repetition /
+            # the logging below). These penalties push back against repeating
+            # the same tokens; max_output_tokens caps the damage if it still
+            # happens instead of burning the full 65536-token default budget.
+            frequency_penalty=0.3,
+            presence_penalty=0.3,
+            max_output_tokens=32768,
+        ),
     )
 
     finish_reason = None
@@ -67,7 +77,7 @@ def _sync_transcribe(audio_path: Path) -> str:
         audio_size_mb,
         finish_reason,
         getattr(usage, "prompt_token_count", None),
-        getattr(usage, "response_token_count", None),
+        getattr(usage, "candidates_token_count", None),
         getattr(usage, "total_token_count", None),
         len(text),
     )
