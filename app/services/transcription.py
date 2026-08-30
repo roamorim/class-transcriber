@@ -1,10 +1,9 @@
 import asyncio
 import logging
-import time
+import warnings
 from pathlib import Path
 
 from google import genai
-from google.genai import types
 
 from app.config import settings
 from app.services.repetition import analyze_repetition
@@ -15,6 +14,23 @@ _client: genai.Client | None = None
 
 MAX_ATTEMPTS = 3
 
+_SYSTEM_INSTRUCTION = (
+    "Transcribe el audio completo de esta clase de forma literal y precisa. "
+    "Incluye todo lo que se dice, respetando el idioma original. "
+    "No agregues comentarios, resúmenes ni anotaciones. "
+    "Solo entrega el texto transcrito."
+)
+
+_MIME_MAP = {
+    "mp3": "audio/mp3",
+    "m4a": "audio/m4a",
+    "mp4": "audio/mp4",
+    "wav": "audio/wav",
+    "ogg": "audio/ogg",
+    "aiff": "audio/aiff",
+    "flac": "audio/flac",
+}
+
 
 def _get_client() -> genai.Client:
     global _client
@@ -23,75 +39,52 @@ def _get_client() -> genai.Client:
     return _client
 
 
-def _generate(client: genai.Client, audio_bytes: bytes, mime_type: str) -> types.GenerateContentResponse:
-    return client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=[
-            types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
-            (
-                "Transcribe el audio completo de esta clase de forma literal y precisa. "
-                "Incluye todo lo que se dice, respetando el idioma original. "
-                "No agregues comentarios, resúmenes ni anotaciones. "
-                "Solo entrega el texto transcrito."
-            ),
-        ],
-        config=types.GenerateContentConfig(
-            # On long audio Gemini sometimes gets stuck repeating the same
-            # phrase until it hits the output limit. frequency_penalty /
-            # presence_penalty would be the direct fix but this model rejects
-            # them ("Penalty is not enabled for models/gemini-2.5-flash"), so
-            # max_output_tokens just caps the damage, and _sync_transcribe
-            # retries below when repetition is detected -- output is
-            # non-deterministic call to call on the same audio.
-            max_output_tokens=32768,
-        ),
-    )
+def _generate(client: genai.Client, audio_path: Path, mime_type: str):
+    audio_content = {"type": "audio", "data": audio_path, "mime_type": mime_type}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        return client.interactions.create(
+            model="gemini-3.5-transcribe",
+            input=[audio_content],
+            system_instruction=_SYSTEM_INSTRUCTION,
+        )
+
+
+def _extract_text(response) -> str:
+    parts = []
+    for content in response.outputs or []:
+        text = getattr(content, "text", None)
+        if text:
+            parts.append(text)
+    return "\n".join(parts)
 
 
 def _sync_transcribe(audio_path: Path) -> str:
     client = _get_client()
 
-    with open(audio_path, "rb") as f:
-        audio_bytes = f.read()
-
-    # Determine MIME type from extension
     ext = audio_path.suffix.lower().lstrip(".")
-    mime_map = {
-        "mp3": "audio/mpeg",
-        "m4a": "audio/mp4",
-        "mp4": "audio/mp4",
-        "wav": "audio/wav",
-        "ogg": "audio/ogg",
-        "aiff": "audio/aiff",
-        "flac": "audio/flac",
-    }
-    mime_type = mime_map.get(ext, "audio/mpeg")
-    audio_size_mb = len(audio_bytes) / (1024 * 1024)
+    mime_type = _MIME_MAP.get(ext, "audio/mpeg")
+    audio_size_mb = audio_path.stat().st_size / (1024 * 1024)
 
     best_text = ""
     best_fraction = None
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        response = _generate(client, audio_bytes, mime_type)
+        response = _generate(client, audio_path, mime_type)
 
-        finish_reason = None
-        if response.candidates:
-            finish_reason = response.candidates[0].finish_reason
-        usage = response.usage_metadata
-        text = response.text or ""
+        usage = response.usage
+        text = _extract_text(response)
 
-        log_fn = logger.info if finish_reason in (None, "STOP") else logger.warning
-        log_fn(
-            "Transcription attempt %s/%s of %s (%.1f MB): finish_reason=%s "
-            "prompt_tokens=%s response_tokens=%s total_tokens=%s text_len=%s",
+        logger.info(
+            "Transcription attempt %s/%s of %s (%.1f MB): "
+            "input_tokens=%s output_tokens=%s total_tokens=%s text_len=%s",
             attempt,
             MAX_ATTEMPTS,
             audio_path.name,
             audio_size_mb,
-            finish_reason,
-            getattr(usage, "prompt_token_count", None),
-            getattr(usage, "candidates_token_count", None),
-            getattr(usage, "total_token_count", None),
+            getattr(usage, "total_input_tokens", None),
+            getattr(usage, "total_output_tokens", None),
+            getattr(usage, "total_tokens", None),
             len(text),
         )
 
