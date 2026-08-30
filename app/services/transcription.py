@@ -41,12 +41,12 @@ def _get_client() -> genai.Client:
 
 def _generate(client: genai.Client, audio_path: Path, mime_type: str):
     audio_content = {"type": "audio", "data": audio_path, "mime_type": mime_type}
+    text_content = {"type": "text", "text": _SYSTEM_INSTRUCTION}
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         return client.interactions.create(
             model="gemini-3.5-transcribe",
-            input=[audio_content],
-            system_instruction=_SYSTEM_INSTRUCTION,
+            input=[audio_content, text_content],
         )
 
 
