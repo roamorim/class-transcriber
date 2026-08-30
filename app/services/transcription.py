@@ -50,15 +50,6 @@ def _generate(client: genai.Client, audio_path: Path, mime_type: str):
         )
 
 
-def _extract_text(response) -> str:
-    parts = []
-    for content in response.outputs or []:
-        text = getattr(content, "text", None)
-        if text:
-            parts.append(text)
-    return "\n".join(parts)
-
-
 def _sync_transcribe(audio_path: Path) -> str:
     client = _get_client()
 
@@ -73,7 +64,7 @@ def _sync_transcribe(audio_path: Path) -> str:
         response = _generate(client, audio_path, mime_type)
 
         usage = response.usage
-        text = _extract_text(response)
+        text = response.output_text or ""
 
         logger.info(
             "Transcription attempt %s/%s of %s (%.1f MB): "
